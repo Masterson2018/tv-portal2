@@ -12,6 +12,8 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -34,13 +36,16 @@ class MainActivity : Activity() {
     )
     // ============================================
 
+    // Hvor mørk skal bakgrunnsbildet dekkes? Første to tegn etter # er styrken
+    // (00 = ingen, FF = helt svart). 99 er omtrent 60 %.
+    private val dimColor = "#99101418"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#101418"))
             clipChildren = false
         }
 
@@ -90,19 +95,38 @@ class MainActivity : Activity() {
             )
         )
 
-        setContentView(root)
+        // Bakgrunnsbilde med mørkt lag over, så knappene er lette å lese
+        val bg = ImageView(this).apply {
+            setImageResource(R.drawable.background)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+        }
+        val dim = View(this).apply {
+            setBackgroundColor(Color.parseColor(dimColor))
+        }
+        val frame = FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor("#101418"))
+        }
+        val full = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        frame.addView(bg, full)
+        frame.addView(dim, FrameLayout.LayoutParams(full))
+        frame.addView(root, FrameLayout.LayoutParams(full))
+
+        setContentView(frame)
         buttons.firstOrNull()?.requestFocus()
     }
 
     private fun makeButton(e: Entry): Button {
         val normal = GradientDrawable().apply {
             cornerRadius = dp(20).toFloat()
-            setColor(Color.parseColor("#1E252D"))
+            setColor(Color.parseColor("#E61E252D"))
             setStroke(dp(3), Color.parseColor("#2C3640"))
         }
         val focused = GradientDrawable().apply {
             cornerRadius = dp(20).toFloat()
-            setColor(Color.parseColor("#2A3441"))
+            setColor(Color.parseColor("#F22A3441"))
             setStroke(dp(5), Color.parseColor(e.accent))
         }
         val states = StateListDrawable().apply {
