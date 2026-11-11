@@ -10,16 +10,29 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 class MainActivity : Activity() {
 
-    // ===== Endre adressene her =====
-    private val navidromeUrl = "https://navidrome.mastetson2025.duckdns.org"
-    private val embyUrl = "http://bulldog2025.duckdns.org:8096"
-    // ================================
+    private data class Entry(
+        val name: String,
+        val sub: String,
+        val url: String,
+        val accent: String
+    )
+
+    // ===== Legg til eller endre adresser her =====
+    // Husk komma etter hver linje unntatt den siste.
+    private val entries = listOf(
+        Entry("Navidrome", "Musikk", "https://navidrome.masterson2025.duckdns.org", "#3DDC84"),
+        Entry("Emby", "Film og TV", "http://bulldog2025.duckdns.org:8096", "#52B54B"),
+        Entry("Audiobookshelf", "Lydbøker", "https://audiobookshelf.masterson2025.duckdns.org", "#FF9800")
+    )
+    // ============================================
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,34 +41,60 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             setBackgroundColor(Color.parseColor("#101418"))
+            clipChildren = false
         }
 
-        val title = TextView(this).apply {
+        root.addView(TextView(this).apply {
             text = "Hva vil du åpne?"
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 36f)
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setPadding(0, 0, 0, dp(40))
-        }
-        root.addView(title)
+            setPadding(0, dp(24), 0, dp(24))
+        })
 
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            clipChildren = false
+            setPadding(dp(16), dp(16), dp(16), dp(16))
         }
 
-        val b1 = makeButton("Navidrome", "Musikk", "#3DDC84", navidromeUrl)
-        val b2 = makeButton("Emby", "Film og TV", "#52B54B", embyUrl)
-        row.addView(b1)
-        row.addView(b2)
-        root.addView(row)
+        val buttons = entries.map { makeButton(it) }
+        buttons.chunked(3).forEach { chunk ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                clipChildren = false
+            }
+            chunk.forEach { row.addView(it) }
+            content.addView(
+                row,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, dp(12), 0, dp(12)) }
+            )
+        }
+
+        val scroll = ScrollView(this).apply {
+            clipChildren = false
+            clipToPadding = false
+            addView(content)
+        }
+        root.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
 
         setContentView(root)
-        b1.requestFocus()
+        buttons.firstOrNull()?.requestFocus()
     }
 
-    private fun makeButton(name: String, sub: String, accent: String, url: String): Button {
+    private fun makeButton(e: Entry): Button {
         val normal = GradientDrawable().apply {
             cornerRadius = dp(20).toFloat()
             setColor(Color.parseColor("#1E252D"))
@@ -64,7 +103,7 @@ class MainActivity : Activity() {
         val focused = GradientDrawable().apply {
             cornerRadius = dp(20).toFloat()
             setColor(Color.parseColor("#2A3441"))
-            setStroke(dp(5), Color.parseColor(accent))
+            setStroke(dp(5), Color.parseColor(e.accent))
         }
         val states = StateListDrawable().apply {
             addState(intArrayOf(android.R.attr.state_focused), focused)
@@ -73,22 +112,27 @@ class MainActivity : Activity() {
         }
 
         return Button(this).apply {
-            text = "$name\n$sub"
+            text = "${e.name}\n${e.sub}"
             isAllCaps = false
             setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
             background = states
             isFocusable = true
             isFocusableInTouchMode = true
-            layoutParams = LinearLayout.LayoutParams(dp(300), dp(180)).apply {
-                setMargins(dp(24), 0, dp(24), 0)
+            layoutParams = LinearLayout.LayoutParams(dp(260), dp(160)).apply {
+                setMargins(dp(16), 0, dp(16), 0)
             }
             setOnClickListener {
-                startActivity(Intent(this@MainActivity, WebActivity::class.java).putExtra("url", url))
+                startActivity(
+                    Intent(this@MainActivity, WebActivity::class.java)
+                        .putExtra("url", e.url)
+                )
             }
             setOnFocusChangeListener { v: View, hasFocus: Boolean ->
-                v.animate().scaleX(if (hasFocus) 1.08f else 1f)
-                    .scaleY(if (hasFocus) 1.08f else 1f).setDuration(120).start()
+                v.animate()
+                    .scaleX(if (hasFocus) 1.08f else 1f)
+                    .scaleY(if (hasFocus) 1.08f else 1f)
+                    .setDuration(120).start()
             }
         }
     }
